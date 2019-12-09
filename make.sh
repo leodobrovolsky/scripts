@@ -188,22 +188,19 @@ else
 fi
 
 #uninstall
-echo "uninstall:\n\t@rm -rf \$(SRCS)\n\t@rm -rf \$(INCS)\n\t@rm -rf \$(OBJ_DIR)" >> Makefile
+echo "uninstall:\n\t@rm -rf \$(SRCS)\n\t@rm -rf \$(INCS)\n\t@rm -rf \$(OBJ_DIR)\n\t@rm -rf \$(LIBS)" >> Makefile
 for i in $(cat tmp2.txt)
 	do
 		echo "\t@make -C $i uninstall" >> Makefile
 	done
+
 #clean
-if [[ $3 == "lib" ]]
-then
-	echo "clean: uninstall\n\t@rm -rf \$(NAME)" >> Makefile
-else
-	echo "clean: uninstall\n\t@rm -rf \$(NAME)" >> Makefile
-fi
+echo "clean: uninstall\n\t@rm -rf \$(NAME)" >> Makefile
 for i in $(cat tmp2.txt)
 	do
 		echo "\t@make -C $i clean" >> Makefile
 	done
+
 #reinstall
 echo "reinstall: uninstall install\n" >> Makefile
 fi
