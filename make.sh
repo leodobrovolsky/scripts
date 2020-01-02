@@ -15,11 +15,11 @@ fi
 #libs
 if [[ $(echo $2 | grep "r") != "" ]]
 then
-for i in $(ls -d */)
+for i in $(ls -d */ | tr '/' ' ' | sed 's/ //')
 do
-	if [[ $i != "src/" && $i != "inc/" && $i != "test/" && $i != "tests/" ]]
+	if [[ $i != "src" && $i != "inc" && -e $i/inc/$i.h ]]
 	then
-		echo $i | tr '/' ' ' | sed 's/ //' >> tmp2.txt
+		echo $i >> tmp2.txt
 	fi
 done
 fi
