@@ -33,108 +33,114 @@ echo $INC | tr ' ' '\n' | sed 's/.$//' | sed 's/.$//' >> tmp1.txt
 
 if [[ $(echo $2 | grep "h") != "" ]]
 then
-FILE="inc/${1}.h"
-if [[ -e $FILE ]]
-then
-	IND="0"
-	while read LINE
-	do  
-		temp=$(echo $LINE | grep "//") 
-		if [[ $temp != "" ]]
-		then
-			IND="1"
-		fi
-
-		temp=$(echo $LINE | grep "typedef") 
-		if [[ $temp != "" ]]
-		then
-			IND="1"
-		fi
-
-		temp2=$(echo $LINE | grep "}") 
-		if [[ $temp2 != "" ]]
-		then
-			if [[ $IND == "1" ]]
-			then
-				echo "$LINE\n"  >> tmp3.txt
-				IND="0"
-	        else
-				IND="0"
-			fi
-		fi	
-
-		if [[ $IND == "1" ]]
-		then
-			echo $LINE  >> tmp3.txt
-		fi
-	done < $FILE
-fi
-
-
-mv inc/$1.h inc/$1_old.h
-rm -rf inc/$1.h
-touch inc/$1.h
-echo "#ifndef ${1}_h\n#define ${1}_h\n\n#include <stdlib.h>\n#include <unistd.h>\n#include <stdbool.h>\n#include <fcntl.h>\n\n" >> "inc/${1}.h"
-cat tmp3.txt >> "inc/${1}.h"
-for i in $(cat tmp1.txt)
-do
-    cat "src/${i}.c" | grep "${i}" | head -1| tr '{' ';' | sed 's/ ;/;/'  >> "inc/${1}.h"
-done
-
-if [[ $(echo $2 | grep "r") != "" ]]
-then
-LIBS=""
-for i in $(cat tmp2.txt)
-do
-	LIBS="$LIBS $i.a"
-	FILE="$i/inc/$i.h"
+	mkdir -p inc
+	FILE="inc/${1}.h"
 	if [[ -e $FILE ]]
 	then
-		echo "\n\n//$i" >> "inc/${1}.h"
+		cat $FILE | grep "#include" >> tmp3.txt
+		echo "" >> tmp3.txt
+		IND="0"
 		while read LINE
-			do  
-			temp=$(echo $LINE | grep "$i") 
+		do  
+			temp=$(echo $LINE | grep "//") 
 			if [[ $temp != "" ]]
 			then
-				continue
-		    fi
+				break
+			fi
 
-		    temp=$(echo $LINE | grep "#ifndef") 
+			temp=$(echo $LINE | grep "typedef") 
 			if [[ $temp != "" ]]
 			then
-				continue
-		    fi
+				IND="1"
+			fi
 
-		    temp=$(echo $LINE | grep "#ifdef") 
-			if [[ $temp != "" ]]
+			temp2=$(echo $LINE | grep "}") 
+			if [[ $temp2 != "" ]]
 			then
-				continue
-		    fi
+				if [[ $IND == "1" ]]
+				then
+					echo "$LINE\n"  >> tmp3.txt
+					IND="0"
+		        else
+					IND="0"
+				fi
+			fi	
 
-		    temp=$(echo $LINE | grep "#endif") 
-			if [[ $temp != "" ]]
+			if [[ $IND == "1" ]]
 			then
-				continue
-		    fi
-
-		    temp=$(echo $LINE | grep "#include") 
-			if [[ $temp != "" ]]
-			then
-				continue
-		    fi
-
-		    temp=$(echo $LINE | grep "#pragma") 
-			if [[ $temp != "" ]]
-			then
-				continue
-		    fi
-
-		    echo $LINE >> "inc/${1}.h"
+				echo $LINE  >> tmp3.txt
+			fi
 		done < $FILE
 	fi
-done
-fi
-echo "#endif\n" >> "inc/${1}.h"
+
+	if [[ -e inc/$1.h && $(echo $2 | grep "c") == "" ]]
+	then
+		mv inc/$1.h inc/$1_old.h
+	fi
+
+	rm -rf inc/$1.h
+	touch inc/$1.h
+	echo "#ifndef ${1}_h\n#define ${1}_h\n" >> "inc/${1}.h"
+	cat tmp3.txt >> "inc/${1}.h"
+	for i in $(cat tmp1.txt)
+	do
+	    cat "src/${i}.c" | grep "${i}" | head -1| tr '{' ';' | sed 's/ ;/;/'  >> "inc/${1}.h"
+	done
+
+	if [[ $(echo $2 | grep "r") != "" ]]
+	then
+	LIBS=""
+	for i in $(cat tmp2.txt)
+	do
+		LIBS="$LIBS $i.a"
+		FILE="$i/inc/$i.h"
+		if [[ -e $FILE ]]
+		then
+			echo "\n//$i" >> "inc/${1}.h"
+			while read LINE
+				do  
+				temp=$(echo $LINE | grep "$i") 
+				if [[ $temp != "" ]]
+				then
+					continue
+			    fi
+
+			    temp=$(echo $LINE | grep "#ifndef") 
+				if [[ $temp != "" ]]
+				then
+					continue
+			    fi
+
+			    temp=$(echo $LINE | grep "#ifdef") 
+				if [[ $temp != "" ]]
+				then
+					continue
+			    fi
+
+			    temp=$(echo $LINE | grep "#endif") 
+				if [[ $temp != "" ]]
+				then
+					continue
+			    fi
+
+			    temp=$(echo $LINE | grep "#include") 
+				if [[ $temp != "" ]]
+				then
+					continue
+			    fi
+
+			    temp=$(echo $LINE | grep "#pragma") 
+				if [[ $temp != "" ]]
+				then
+					continue
+			    fi
+
+			    echo $LINE >> "inc/${1}.h"
+			done < $FILE
+		fi
+	done
+	fi
+	echo "#endif\n" >> "inc/${1}.h"
 fi
 
 
@@ -142,7 +148,10 @@ fi
 
 if [[ $(echo $2 | grep "m") != "" ]]
 then
-cp -f Makefile Makefile_old.txt
+if [[ -e Makefile && $(echo $2 | grep "c") == "" ]]
+then
+	cp -f Makefile Makefile_old.txt
+fi
 rm -rf Makefile
 touch Makefile
 echo "NAME = ${1}${PARAM}\n\nCFLAG = -std=c11 -Wall -Wextra -Werror -Wpedantic\n\nLIBS = $(cat tmp2.txt | tr '\n' ' '| sed 's/ /.a /')\n\nINC = inc/${1}.h\n\nINCS = ${1}.h\n" >> Makefile
